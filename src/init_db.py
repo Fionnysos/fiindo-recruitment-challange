@@ -1,5 +1,6 @@
-from database import engine, Base
-import models
+from .database import engine, Base
+from .models import Symbol, TickerStatistic, IndustryAggregate
+
 
 
 def init_db():
