@@ -1,7 +1,8 @@
 """ Database models for the Fiindo recruitment challenge. """
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import relationship
-from database import Base
+from .database import Base
+
 
 class Symbol(Base):
     __tablename__ = "symbols"
@@ -16,6 +17,9 @@ class Symbol(Base):
     country = Column(String)
     currency = Column(String)
     market_cap = Column(Float)
+
+    stats = relationship("TickerStatistic", back_populates="symbol_obj")
+
 
 class TickerStatistic(Base):
     __tablename__ = "ticker_statistics"
