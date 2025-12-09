@@ -1,0 +1,10 @@
+version: "3.9"
+
+services:
+  fiindo:
+    build: .
+    container_name: fiindo_pipeline
+    environment:
+      - PYTHONUNBUFFERED=1
+    # logs directly to console
+    command: python -m src.run_pipeline

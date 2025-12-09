@@ -1,5 +1,6 @@
-from database import SessionLocal
-from models import Symbol, TickerStatistic, IndustryAggregate
+from .database import SessionLocal
+from .models import Symbol, TickerStatistic, IndustryAggregate
+
 from sqlalchemy import func
 
 # industries we need to aggregate
