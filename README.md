@@ -1,235 +1,149 @@
-# Fiindo Recruitment Challenge – Solution by Fionn Zak
+# **Fiindo Recruitment Challenge – Solution by Fionn Zak**
 
-This project implements the full Fiindo recruitment challenge workflow:
-Fetching financial data from the Fiindo test API → persisting it in a SQLite database → computing per-ticker metrics → aggregating them on industry level → validating logic with unit tests.
+This project implements the full Fiindo recruitment workflow:
 
----
-
-## Project Overview
-
-The application performs:
-
-1. **Data Collection**
-
-   * Retrieves all ticker symbols
-   * Fetches general profile data
-   * Loads financial statements (income + balance sheet)
-
-2. **Metric Computation**
-   For the three required industries:
-
-   * **Banks – Diversified**
-   * **Software – Application**
-   * **Consumer Electronics** (not present in sample data, but implemented)
-
-   Per-ticker statistics:
-
-   * PE Ratio (custom fallback logic if EPS is missing)
-   * Revenue Growth QoQ
-   * Net Income TTM
-   * Debt Ratio
-   * Revenue of the latest quarter
-
-3. **Industry Aggregation**
-
-   * Average PE Ratio
-   * Average Revenue Growth
-   * Sum of Revenue across all tickers in the industry
-
-4. **Data Persistence**
-
-   * Stored in SQLite via SQLAlchemy ORM
-   * Clean schema with three tables: `symbols`, `ticker_statistics`, `industry_aggregates`
-
-5. **Unit Testing**
-
-   * Tests for database interactions
-   * Tests for metric calculation logic
+**Fetch financial data → store it in SQLite → compute ticker metrics → aggregate by industry → validate with tests → optional Dockerized pipeline.**
 
 ---
 
-## Project Structure
+## **Learning Note**
 
-```
-fiindo-recruitment-challenge/
-│
-├── src/
-│   ├── api_playground.py
-│   ├── database.py
-│   ├── models.py
-│   ├── init_db.py
-│   ├── load_symbols.py
-│   ├── load_ticker_stats.py
-│   ├── compute_industry_aggregates.py
-│   ├── speedboost.py
-│   └── __init__.py
-│
-├── tests/
-│   ├── test_db.py
-│   ├── test_stats.py
-│
-├── requirements.txt
-└── README.md
-```
+Before this challenge I had never used **SQLAlchemy ORM** or written my own **Dockerfile**.
+I knew how to *run* containers, but not how to *build* them.
+While working on this project I learned:
+
+* how SQLAlchemy ORM models, sessions, and relationships work,
+* how to structure an ETL pipeline cleanly,
+* how to build and run a Dockerized workflow.
+
+I used documentation, videos, and occasional AI support to learn the needed concepts and successfully apply them.
 
 ---
 
-## Database Schema
+## **Overview**
 
-The solution uses **SQLite + SQLAlchemy ORM** and defines three tables:
+### **Data Collection**
 
-### **1. symbols**
+* Fetch ticker symbols
+* Fetch company profiles
+* Load income & balance sheet statements
 
-Stores metadata about each ticker:
+### **Metric Computation**
 
-* symbol
-* code
-* exchange
-* company_name
-* sector
-* industry
-* country
-* currency
-* market_cap
+For target industries:
 
-### **2. ticker_statistics**
+* Banks – Diversified
+* Software – Application
+* Consumer Electronics (not present in dataset, logic included)
+* Consumer Cyclical (fallback due to API data)
 
-Stores computed metrics:
+Computed metrics:
 
-* pe_ratio
-* revenue_growth
-* net_income_ttm
-* debt_ratio
-* revenue_last_quarter
-* calculated_at
+* PE Ratio (with fallback logic)
+* Revenue Growth
+* Net Income (TTM)
+* Debt Ratio
+* Latest quarter revenue
 
-### **3. industry_aggregates**
+### **Industry Aggregation**
 
-Aggregated values per industry:
+* Average PE Ratio
+* Average Revenue Growth
+* Total Industry Revenue
 
-* avg_pe_ratio
-* avg_revenue_growth
-* sum_revenue
+### **Data Storage**
 
----
+SQLite + SQLAlchemy ORM with tables:
 
-## Installation & Setup
+* `symbols`
+* `ticker_statistics`
+* `industry_aggregates`
 
-### Clone repository
+### **Testing**
 
-```bash
-git clone <repo-url>
-cd fiindo-recruitment-challenge
-```
+`pytest` covers:
 
-### Create virtual environment
+* ORM model behavior
+* Metric calculation functions
 
-```bash
-python -m venv .venv
-source .venv/bin/activate     # macOS/Linux
-.\.venv\Scripts\activate      # Windows
-```
+### **Optional Docker Pipeline**
 
-### Install dependencies
+Container builds and runs the whole ETL flow automatically.
+
+## **Setup**
+
+### Create environment
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
-
-## Initialize the Database
-
-Run:
+### Initialize database
 
 ```bash
 python src/init_db.py
 ```
 
-This creates **fiindo_challenge.db** and all required tables.
-
----
-
-## 1. Load Symbol Metadata
+### Load symbols
 
 ```bash
 python src/load_symbols.py
 ```
 
-This script:
-
-* Fetches all symbols from the Fiindo API
-* Fetches their general profile
-* Inserts or updates the `symbols` table
-
----
-
-## 2. Compute Per-Ticker Statistics
+### Compute ticker statistics
 
 ```bash
 python src/load_ticker_stats.py
 ```
 
-This script:
-
-* Filters symbols belonging to the three target industries
-* Fetches financial statements
-* Computes PE ratio, revenue growth, TTM net income, debt ratio
-* Saves results to `ticker_statistics`
-
-Speed can be boosted beforehand using:
+Optional API speed boost:
 
 ```bash
 python src/speedboost.py
 ```
 
----
-
-## 3. Compute Industry Aggregates
+### Compute industry aggregates
 
 ```bash
 python src/compute_industry_aggregates.py
 ```
 
-This computes:
+### Run full pipeline
 
-* Average PE ratio
-* Average revenue growth
-* Total revenue
-
-Values are stored in `industry_aggregates`.
+```bash
+python src/run_pipeline.py
+```
 
 ---
 
-## Running Tests
-
-Tests are written using `pytest` and cover:
-
-* Database insertion
-* Metrics calculation functions
-
-Run:
+## **Run Tests**
 
 ```bash
 pytest -q
 ```
 
-All tests should pass.
+---
+
+## **Run with Docker (Optional Bonus)**
+
+```bash
+docker compose build
+docker compose up
+```
+
+Runs the entire pipeline inside a container.
 
 ---
 
-## Notes & Considerations
+## **Summary**
 
-* The API sometimes returns incomplete data; PE ratio includes fallback logic (EPS diluted → EPS → netIncome/shares).
-* Some industries (e.g., *Consumer Electronics*) may not exist in the test dataset; the script still handles them gracefully.
-* The project avoids unnecessary re-inserts and uses **update-or-insert** behavior for symbols.
+This project demonstrates:
 
----
+* API integration
+* ETL pipeline design
+* SQLAlchemy ORM for persistence
+* Data analysis & aggregation
+* Automated testing
+* Docker-based execution
 
-## Deliverables
-
-* Fully working ETL pipeline
-* SQLite database with all computed data
-* Clean and documented Python code
-* Automated tests
-* This README with full setup instructions
+Compact, complete, and easy to run.
