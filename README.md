@@ -1,83 +1,235 @@
-# Fiindo Recruitment Challenge
+# Fiindo Recruitment Challenge – Solution by Fionn Zak
 
-This repository contains a coding challenge for fiindo candidates. Candidates should fork this repository and implement their solution based on the requirements below.
+This project implements the full Fiindo recruitment challenge workflow:
+Fetching financial data from the Fiindo test API → persisting it in a SQLite database → computing per-ticker metrics → aggregating them on industry level → validating logic with unit tests.
 
-## Challenge Overview
+---
 
-Create a data processing application that:
-- Fetches financial data from an API
-- Performs calculations on stock ticker data
-- Saves results to a SQLite database
+## Project Overview
 
-## Technical Requirements
+The application performs:
 
-### Input
-- **API Endpoint**: `https://api.test.fiindo.com` (docs: `https://api.test.fiindo.com/api/v1/docs/`)
-- **Authentication**: Use header `Auhtorization: Bearer {first_name}.{last_name}` with every request. Anything else WILL BE IGNORED. No other format or value will be accepted.
-- **Template**: This forked repository as starting point
+1. **Data Collection**
 
-### Output
-- **Database**: SQLite database with processed financial data
-- **Tables**: Individual ticker statistics and industry aggregations
+   * Retrieves all ticker symbols
+   * Fetches general profile data
+   * Loads financial statements (income + balance sheet)
 
-## Process Steps
+2. **Metric Computation**
+   For the three required industries:
 
-### 1. Data Collection
-- Connect to the Fiindo API
-- Authenticate using your identifier `Auhtorization: Bearer {first_name}.{last_name}`
-- Fetch financial data
+   * **Banks – Diversified**
+   * **Software – Application**
+   * **Consumer Electronics** (not present in sample data, but implemented)
 
-### 2. Data Calculations
+   Per-ticker statistics:
 
-Calculate data for symbols only from those 3 industries:
-  - `Banks - Diversified`
-  - `Software - Application`
-  - `Consumer Electronics`
+   * PE Ratio (custom fallback logic if EPS is missing)
+   * Revenue Growth QoQ
+   * Net Income TTM
+   * Debt Ratio
+   * Revenue of the latest quarter
 
-#### Per Ticker Statistics
-- **PE Ratio**: Price-to-Earnings ratio calculation from last quarter
-- **Revenue Growth**: Quarter-over-quarter revenue growth (Q-1 vs Q-2)
-- **NetIncomeTTM**: Trailing twelve months net income
-- **DebtRatio**: Debt-to-equity ratio from last year
+3. **Industry Aggregation**
 
-#### Industry Aggregation
-- **Average PE Ratio**: Mean PE ratio across all tickers in each industry
-- **Average Revenue Growth**: Mean revenue growth across all tickers in each industry
-- **Sum of Revenue**: Sum revenue across all tickers in each industry
+   * Average PE Ratio
+   * Average Revenue Growth
+   * Sum of Revenue across all tickers in the industry
 
-### 3. Data Storage
-- Design appropriate database schema
-- Save individual ticker statistics
-- Save aggregated industry data
+4. **Data Persistence**
 
-## Database Setup
+   * Stored in SQLite via SQLAlchemy ORM
+   * Clean schema with three tables: `symbols`, `ticker_statistics`, `industry_aggregates`
 
-### Database Files
-- `fiindo_challenge.db`: SQLite database file
-- `models.py`: SQLAlchemy model definitions (can be divided into separate files if needed)
-- `alembic/`: Database migration management
+5. **Unit Testing**
 
-## Getting Started
+   * Tests for database interactions
+   * Tests for metric calculation logic
 
-1. **Fork this repository** to your GitHub account
-3. **Implement the solution** following the process steps outlined above 
+---
+
+## Project Structure
+
+```
+fiindo-recruitment-challenge/
+│
+├── src/
+│   ├── api_playground.py
+│   ├── database.py
+│   ├── models.py
+│   ├── init_db.py
+│   ├── load_symbols.py
+│   ├── load_ticker_stats.py
+│   ├── compute_industry_aggregates.py
+│   ├── speedboost.py
+│   └── __init__.py
+│
+├── tests/
+│   ├── test_db.py
+│   ├── test_stats.py
+│
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## Database Schema
+
+The solution uses **SQLite + SQLAlchemy ORM** and defines three tables:
+
+### **1. symbols**
+
+Stores metadata about each ticker:
+
+* symbol
+* code
+* exchange
+* company_name
+* sector
+* industry
+* country
+* currency
+* market_cap
+
+### **2. ticker_statistics**
+
+Stores computed metrics:
+
+* pe_ratio
+* revenue_growth
+* net_income_ttm
+* debt_ratio
+* revenue_last_quarter
+* calculated_at
+
+### **3. industry_aggregates**
+
+Aggregated values per industry:
+
+* avg_pe_ratio
+* avg_revenue_growth
+* sum_revenue
+
+---
+
+## Installation & Setup
+
+### Clone repository
+
+```bash
+git clone <repo-url>
+cd fiindo-recruitment-challenge
+```
+
+### Create virtual environment
+
+```bash
+python -m venv .venv
+source .venv/bin/activate     # macOS/Linux
+.\.venv\Scripts\activate      # Windows
+```
+
+### Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## Initialize the Database
+
+Run:
+
+```bash
+python src/init_db.py
+```
+
+This creates **fiindo_challenge.db** and all required tables.
+
+---
+
+## 1. Load Symbol Metadata
+
+```bash
+python src/load_symbols.py
+```
+
+This script:
+
+* Fetches all symbols from the Fiindo API
+* Fetches their general profile
+* Inserts or updates the `symbols` table
+
+---
+
+## 2. Compute Per-Ticker Statistics
+
+```bash
+python src/load_ticker_stats.py
+```
+
+This script:
+
+* Filters symbols belonging to the three target industries
+* Fetches financial statements
+* Computes PE ratio, revenue growth, TTM net income, debt ratio
+* Saves results to `ticker_statistics`
+
+Speed can be boosted beforehand using:
+
+```bash
+python src/speedboost.py
+```
+
+---
+
+## 3. Compute Industry Aggregates
+
+```bash
+python src/compute_industry_aggregates.py
+```
+
+This computes:
+
+* Average PE ratio
+* Average revenue growth
+* Total revenue
+
+Values are stored in `industry_aggregates`.
+
+---
+
+## Running Tests
+
+Tests are written using `pytest` and cover:
+
+* Database insertion
+* Metrics calculation functions
+
+Run:
+
+```bash
+pytest -q
+```
+
+All tests should pass.
+
+---
+
+## Notes & Considerations
+
+* The API sometimes returns incomplete data; PE ratio includes fallback logic (EPS diluted → EPS → netIncome/shares).
+* Some industries (e.g., *Consumer Electronics*) may not exist in the test dataset; the script still handles them gracefully.
+* The project avoids unnecessary re-inserts and uses **update-or-insert** behavior for symbols.
+
+---
 
 ## Deliverables
 
-Your completed solution should include:
-- Working application that fetches data from the API
-- SQLite database with calculated results
-- Clean, documented code
-- README with setup and run instructions
-
-## Bonus Points
-
-### Dockerization
-- Containerize your solution using Docker
-- Create a `Dockerfile` and `docker-compose.yml`
-
-### Unit Testing
-- Write comprehensive unit tests for ETL part your solution
-
-
-Good luck with your implementation!
+* Fully working ETL pipeline
+* SQLite database with all computed data
+* Clean and documented Python code
+* Automated tests
+* This README with full setup instructions
