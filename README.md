@@ -1,83 +1,149 @@
-# Fiindo Recruitment Challenge
+# **Fiindo Recruitment Challenge – Solution by Fionn Zak**
 
-This repository contains a coding challenge for fiindo candidates. Candidates should fork this repository and implement their solution based on the requirements below.
+This project implements the full Fiindo recruitment workflow:
 
-## Challenge Overview
+**Fetch financial data → store it in SQLite → compute ticker metrics → aggregate by industry → validate with tests → optional Dockerized pipeline.**
 
-Create a data processing application that:
-- Fetches financial data from an API
-- Performs calculations on stock ticker data
-- Saves results to a SQLite database
+---
 
-## Technical Requirements
+## **Learning Note**
 
-### Input
-- **API Endpoint**: `https://api.test.fiindo.com` (docs: `https://api.test.fiindo.com/api/v1/docs/`)
-- **Authentication**: Use header `Auhtorization: Bearer {first_name}.{last_name}` with every request. Anything else WILL BE IGNORED. No other format or value will be accepted.
-- **Template**: This forked repository as starting point
+Before this challenge I had never used **SQLAlchemy ORM** or written my own **Dockerfile**.
+I knew how to *run* containers, but not how to *build* them.
+While working on this project I learned:
 
-### Output
-- **Database**: SQLite database with processed financial data
-- **Tables**: Individual ticker statistics and industry aggregations
+* how SQLAlchemy ORM models, sessions, and relationships work,
+* how to structure an ETL pipeline cleanly,
+* how to build and run a Dockerized workflow.
 
-## Process Steps
+I used documentation, videos, and occasional AI support to learn the needed concepts and successfully apply them.
 
-### 1. Data Collection
-- Connect to the Fiindo API
-- Authenticate using your identifier `Auhtorization: Bearer {first_name}.{last_name}`
-- Fetch financial data
+---
 
-### 2. Data Calculations
+## **Overview**
 
-Calculate data for symbols only from those 3 industries:
-  - `Banks - Diversified`
-  - `Software - Application`
-  - `Consumer Electronics`
+### **Data Collection**
 
-#### Per Ticker Statistics
-- **PE Ratio**: Price-to-Earnings ratio calculation from last quarter
-- **Revenue Growth**: Quarter-over-quarter revenue growth (Q-1 vs Q-2)
-- **NetIncomeTTM**: Trailing twelve months net income
-- **DebtRatio**: Debt-to-equity ratio from last year
+* Fetch ticker symbols
+* Fetch company profiles
+* Load income & balance sheet statements
 
-#### Industry Aggregation
-- **Average PE Ratio**: Mean PE ratio across all tickers in each industry
-- **Average Revenue Growth**: Mean revenue growth across all tickers in each industry
-- **Sum of Revenue**: Sum revenue across all tickers in each industry
+### **Metric Computation**
 
-### 3. Data Storage
-- Design appropriate database schema
-- Save individual ticker statistics
-- Save aggregated industry data
+For target industries:
 
-## Database Setup
+* Banks – Diversified
+* Software – Application
+* Consumer Electronics (not present in dataset, logic included)
+* Consumer Cyclical (fallback due to API data)
 
-### Database Files
-- `fiindo_challenge.db`: SQLite database file
-- `models.py`: SQLAlchemy model definitions (can be divided into separate files if needed)
-- `alembic/`: Database migration management
+Computed metrics:
 
-## Getting Started
+* PE Ratio (with fallback logic)
+* Revenue Growth
+* Net Income (TTM)
+* Debt Ratio
+* Latest quarter revenue
 
-1. **Fork this repository** to your GitHub account
-3. **Implement the solution** following the process steps outlined above 
+### **Industry Aggregation**
 
-## Deliverables
+* Average PE Ratio
+* Average Revenue Growth
+* Total Industry Revenue
 
-Your completed solution should include:
-- Working application that fetches data from the API
-- SQLite database with calculated results
-- Clean, documented code
-- README with setup and run instructions
+### **Data Storage**
 
-## Bonus Points
+SQLite + SQLAlchemy ORM with tables:
 
-### Dockerization
-- Containerize your solution using Docker
-- Create a `Dockerfile` and `docker-compose.yml`
+* `symbols`
+* `ticker_statistics`
+* `industry_aggregates`
 
-### Unit Testing
-- Write comprehensive unit tests for ETL part your solution
+### **Testing**
 
+`pytest` covers:
 
-Good luck with your implementation!
+* ORM model behavior
+* Metric calculation functions
+
+### **Optional Docker Pipeline**
+
+Container builds and runs the whole ETL flow automatically.
+
+## **Setup**
+
+### Create environment
+
+```bash
+pip install -r requirements.txt
+```
+
+### Initialize database
+
+```bash
+python src/init_db.py
+```
+
+### Load symbols
+
+```bash
+python src/load_symbols.py
+```
+
+### Compute ticker statistics
+
+```bash
+python src/load_ticker_stats.py
+```
+
+Optional API speed boost:
+
+```bash
+python src/speedboost.py
+```
+
+### Compute industry aggregates
+
+```bash
+python src/compute_industry_aggregates.py
+```
+
+### Run full pipeline
+
+```bash
+python src/run_pipeline.py
+```
+
+---
+
+## **Run Tests**
+
+```bash
+pytest -q
+```
+
+---
+
+## **Run with Docker (Optional Bonus)**
+
+```bash
+docker compose build
+docker compose up
+```
+
+Runs the entire pipeline inside a container.
+
+---
+
+## **Summary**
+
+This project demonstrates:
+
+* API integration
+* ETL pipeline design
+* SQLAlchemy ORM for persistence
+* Data analysis & aggregation
+* Automated testing
+* Docker-based execution
+
+Compact, complete, and easy to run.
